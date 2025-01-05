@@ -2,19 +2,37 @@ services:
   app:
     build:
       context: .
+    restart: unless-stopped
+    container_name: app
     networks:
-      - dev
-  ngnix:
+      - app
+  nginx:
     image: nginx:stable-alpine
+    container_name: nginx
+    restart: unless-stopped
     ports:
       - 80:80
-      - 443:80
+      - 443:443
     volumes:
-      - './nginx.conf:/etc/nginx/nginx.conf'
+      - ./nginx-conf.d:/etc/nginx/conf.d
+      - etc-letsencrypt:/etc/letsencrypt
     depends_on:
       - app
     networks:
-      - dev
+      - app
+  certbot:
+    image: certbot/certbot
+    depends_on:
+      - nginx
+    container_name: certbot
+    profiles:
+      - ssl
+    volumes:
+      - etc-letsencrypt:/etc/letsencrypt
+    command:
+      - certonly --email nikitatsarenko7@gmail.com --agree-tos --no-eff-email -d ${DOMAIN_NAME}
 
+volumes:
+  etc-letsencrypt:
 networks:
-  dev:
+  app:
